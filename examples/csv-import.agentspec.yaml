@@ -1,0 +1,60 @@
+agentspec: "0.1"
+id: feat-csv-import-customers
+title: Bulk customer CSV import endpoint
+intent: |
+  Allow ops users to upload a CSV file of customer records and have valid rows
+  inserted, invalid rows reported, and the import auditable. Files up to 50 MB
+  / 500k rows.
+actors:
+  - ops user
+  - customers table
+  - audit log
+contracts:
+  - name: POST /imports/customers
+    inputs:
+      - key: file
+        val: "multipart/form-data, text/csv, <= 50 MB"
+      - key: dry_run
+        val: "boolean (default false)"
+    outputs:
+      - key: import_id
+        val: UUID
+      - key: rows_total
+        val: integer
+      - key: rows_committed
+        val: integer
+      - key: rows_rejected
+        val: integer
+      - key: rejected_report_url
+        val: "signed URL, expires in 24h"
+    errors:
+      - FILE_TOO_LARGE
+      - INVALID_CSV
+      - SCHEMA_MISMATCH
+      - DUPLICATE_IMPORT_ID
+invariants:
+  - An import either fully succeeds (all valid rows committed) or rolls back (no partial state)
+  - PII columns are never written to logs or stdout
+  - Every import emits one start and one end audit event with the row counts and the user ID
+acceptance:
+  - given: a CSV with 1000 valid rows
+    when: the user POSTs to /imports/customers with dry_run=false
+    then: response is 200, rows_committed=1000, rows_rejected=0, and the customers table grows by 1000
+  - given: a CSV with 100 valid and 50 invalid rows
+    when: the user POSTs with dry_run=true
+    then: response is 200, rows_committed=0, rows_rejected=50, and the customers table is unchanged
+context:
+  files:
+    - src/imports/customer-importer.ts
+    - src/db/customers.ts
+  symbols:
+    - Importer.run
+    - CsvValidator.parseRow
+constraints:
+  performance: "50 MB file completes in < 30s p95"
+  transaction: "single DB transaction; rollback on any uncaught error"
+  audit: "start and end events emitted within 100ms of phase boundary"
+out_of_scope:
+  - Real-time streaming imports (>50 MB) — separate spec
+  - Schema migrations triggered by the import — never
+  - Customer deduplication beyond email uniqueness — separate spec

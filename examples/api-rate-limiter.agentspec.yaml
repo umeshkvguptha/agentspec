@@ -1,0 +1,58 @@
+agentspec: "0.1"
+id: feat-api-rate-limiter
+title: Per-key sliding-window API rate limiter
+intent: |
+  Reject requests that exceed a per-API-key request budget within a 60-second
+  sliding window, while keeping p99 latency overhead under 2ms.
+actors:
+  - API gateway
+  - Redis (rate-limit store)
+  - calling service
+contracts:
+  - name: RateLimiter.check(key, limit, windowSec)
+    inputs:
+      - key: key
+        val: string
+      - key: limit
+        val: "integer (1..100000)"
+      - key: windowSec
+        val: "integer (1..3600)"
+    outputs:
+      - key: allowed
+        val: boolean
+      - key: remaining
+        val: integer
+      - key: reset_at
+        val: "unix epoch seconds"
+    errors:
+      - INVALID_KEY
+      - STORE_UNAVAILABLE
+invariants:
+  - Two requests from the same key arriving in the same millisecond are counted independently
+  - When Redis is unreachable, the limiter fails open and emits a metric within 100ms
+  - Limit decisions are idempotent under retries
+acceptance:
+  - given: a key with limit=10 and windowSec=60 that has used 9 requests in the last 30s
+    when: a 10th request arrives
+    then: allowed=true and remaining=0
+  - given: a key with limit=10 that has used 10 requests in the last 60s
+    when: an 11th request arrives
+    then: allowed=false, remaining=0, and reset_at is the timestamp 60s after the oldest counted request
+  - given: Redis is unreachable
+    when: check is called
+    then: allowed=true and a metric ratelimiter.fail_open is incremented within 100ms
+context:
+  files:
+    - src/limiter/index.ts
+    - src/redis/client.ts
+  symbols:
+    - RedisClient.evalsha
+    - Limiter.LUA_CHECK
+constraints:
+  performance.p99: "< 2ms overhead per call"
+  memory: "O(1) per key, stored as a Redis sorted set"
+  atomicity: "Lua script ensures single-roundtrip read-modify-write"
+out_of_scope:
+  - Distributed leader election for the limiter — Redis is the source of truth
+  - Per-IP rate limiting (separate spec, runs at the LB)
+  - Adaptive limits based on backend health — separate spec
