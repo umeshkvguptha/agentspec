@@ -216,6 +216,27 @@
   .doc-prose .field-doc .desc{color:var(--muted)}
   .doc-prose .field-doc .desc b{color:var(--text)}
 
+  /* ---- walkthrough stepper ---- */
+  .stepper{position:relative}
+  .step{display:grid;grid-template-columns:44px 1fr;gap:0 16px}
+  .step-left{display:flex;flex-direction:column;align-items:center}
+  .step-num{width:36px;height:36px;border-radius:50%;background:var(--accent);color:var(--primary-fg);display:grid;place-items:center;font-family:var(--serif);font-weight:600;font-size:15px;flex-shrink:0}
+  .step-line{flex:1;width:2px;background:var(--line);margin:5px 0;min-height:24px}
+  .step:last-child .step-line{display:none}
+  .step-body{padding-bottom:28px}
+  .step-agent{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--accent-2);background:var(--accent-soft);border-radius:5px;padding:2px 9px;display:inline-block;margin-bottom:7px;font-weight:600}
+  .step-title{font-weight:600;font-size:15px;color:var(--text);margin:4px 0 10px;line-height:1.35}
+  .step-title code{font-size:13px;background:var(--bg-2);padding:1px 6px;border-radius:4px;color:var(--accent-2)}
+  .artifact-wrap{margin-top:10px}
+  .artifact-fname{font-size:11px;color:var(--muted);font-family:var(--mono);margin-bottom:5px;display:flex;align-items:center;gap:8px}
+  .artifact-ftype{background:var(--bg-2);border:1px solid var(--line);border-radius:5px;padding:1px 8px;font-size:10.5px;color:var(--muted-2);font-family:var(--sans)}
+  .artifact{background:var(--bg-2);border:1px solid var(--line-soft);border-radius:var(--radius-sm);padding:13px 15px;font-family:var(--mono);font-size:12px;line-height:1.65;color:var(--text-2);overflow:auto;max-height:310px;white-space:pre}
+  .step-note{font-size:13px;color:var(--muted);margin-top:9px;line-height:1.6}
+  .outcome-pills{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+  .outcome-pill{font-size:12px;padding:3px 10px;border-radius:999px;border:1px solid var(--line);color:var(--muted);background:var(--paper)}
+  .outcome-pill.good{color:var(--good);background:var(--good-soft);border-color:var(--good-border)}
+  .outcome-pill.warn{color:var(--warn);background:var(--warn-soft);border-color:var(--warn-border)}
+
   .footer{max-width:1380px;margin:40px auto 50px;padding:24px 26px 0;color:var(--muted);font-size:13px;display:flex;flex-wrap:wrap;gap:16px;align-items:center;border-top:1px solid var(--line-soft)}
   .footer .sp{flex:1}
   .footer a{color:var(--muted)}
@@ -267,6 +288,7 @@
   <div class="tab active" data-tab="editor">Editor</div>
   <div class="tab" data-tab="lint">Linter <span id="lint-tab-badge"></span></div>
   <div class="tab" data-tab="output">Output</div>
+  <div class="tab" data-tab="walkthrough">Walkthrough</div>
   <div class="tab" data-tab="spec">Spec</div>
   <div class="tab" data-tab="about">About</div>
 </div>
@@ -440,6 +462,289 @@
           <button class="btn small copy-btn" id="copy-output">Copy</button>
           <pre id="out-content">—</pre>
         </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- WALKTHROUGH -->
+  <section data-pane="walkthrough" style="display:none">
+    <div class="panel">
+      <div class="panel-header">End-to-end walkthrough — Equity order entry ticket</div>
+      <div class="panel-body">
+        <p style="color:var(--muted);font-size:14px;margin:0 0 26px">A single stakeholder requirement travels through the full BMAD pipeline. Every agent receives a structured artifact — not English prose — from the one before it. Same spec, zero agent lock-in. <button class="btn small" onclick="loadWalkthroughSample()">Load spec in Editor →</button></p>
+
+        <div class="stepper">
+
+          <!-- Step 1 -->
+          <div class="step">
+            <div class="step-left"><div class="step-num">1</div><div class="step-line"></div></div>
+            <div class="step-body">
+              <div class="step-agent">Stakeholder</div>
+              <div class="step-title">Raw requirement — English, no structure</div>
+              <div class="artifact-wrap">
+                <div class="artifact-fname"><span>Jira Epic · OMS-201</span><span class="artifact-ftype">English</span></div>
+                <div class="artifact">"Traders need to enter equity orders from the OMS UI.
+It should be fast, handle errors properly, and connect
+to our order intake API. Don't include algo orders."</div>
+              </div>
+              <p class="step-note">Ambiguous intent, no error modes, no acceptance criteria, no scope boundary. This is what every team starts with — and what AgentSpec is designed to fix.</p>
+            </div>
+          </div>
+
+          <!-- Step 2 -->
+          <div class="step">
+            <div class="step-left"><div class="step-num">2</div><div class="step-line"></div></div>
+            <div class="step-body">
+              <div class="step-agent">BA Agent</div>
+              <div class="step-title">Produces <code>feat-order-entry-ticket-v1.agentspec.yaml</code> — committed to repo</div>
+              <div class="artifact-wrap">
+                <div class="artifact-fname"><span>specs/feat-order-entry-ticket-v1.agentspec.yaml</span><span class="artifact-ftype">YAML · repo</span></div>
+                <div class="artifact">agentspec: "0.1"
+id: feat-order-entry-ticket-v1
+title: "Equity order entry ticket — new order submission"
+intent: >
+  Give a front-office trader a form to enter a new equity order
+  (market or limit, buy or sell) and submit it to the OMS.
+  Validates client-side and surfaces OMS rejections inline.
+  Target: valid submittable order in under 5 keystrokes.
+
+out_of_scope:
+  - "Order amendment and cancel — separate spec"
+  - "Algo orders (TWAP, VWAP, POV) — separate spec"
+  - "Options and futures — equities only in this spec"
+  - "Order blotter / confirmation screen — separate spec"
+
+contracts:
+  - name: "POST /orders"
+    inputs:
+      - {key: symbol,      val: "string — ISIN or ticker"}
+      - {key: side,        val: "BUY | SELL"}
+      - {key: qty,         val: "integer 1..10,000,000"}
+      - {key: order_type,  val: "MARKET | LIMIT | STOP_LIMIT"}
+      - {key: limit_price, val: "decimal | null"}
+      - {key: tif,         val: "DAY | GTC | IOC | FOK"}
+    errors:
+      - SYMBOL_NOT_FOUND
+      - INSUFFICIENT_BUYING_POWER
+      - INVALID_LOT_SIZE
+      - OMS_UNAVAILABLE
+
+acceptance:
+  - given: "trader enters AAPL, BUY, qty=100, MARKET, DAY"
+    when:  "they click Submit"
+    then:  "POST /orders called once, order_id shown, form resets in 500ms"
+  - given: "LIMIT order with empty limit_price"
+    when:  "they click Submit"
+    then:  "inline validation error, POST /orders NOT called"
+  - given: "OMS returns INSUFFICIENT_BUYING_POWER"
+    when:  "POST /orders responds"
+    then:  "inline error within 200ms, Submit re-enables, no navigation"</div>
+              </div>
+              <p class="step-note">Version-controlled alongside the code. Every future commit referencing this spec ID is traceable to this exact artifact.</p>
+            </div>
+          </div>
+
+          <!-- Step 3 -->
+          <div class="step">
+            <div class="step-left"><div class="step-num">3</div><div class="step-line"></div></div>
+            <div class="step-body">
+              <div class="step-agent">PM Agent — Linter gate</div>
+              <div class="step-title">Quality score computed — objective gate decision, no gut check</div>
+              <div class="artifact-wrap">
+                <div class="artifact-fname"><span>CI linter output</span><span class="artifact-ftype">CI check</span></div>
+                <div class="artifact">AgentSpec Linter — feat-order-entry-ticket-v1
+──────────────────────────────────────────────
+Score:  94 / 100
+
+  0 errors · 1 warning · 2 info
+
+WARN   intent       "practiced trader" is not measurable.
+                    Suggested fix: "a trader who has submitted ≥1 order before"
+
+INFO   constraints  No p99 latency constraint on POST /orders.
+INFO   context      No symbol listed for account selector component.
+
+Gate decision:  ✓ PASS
+  score 94 ≥ 70 threshold · 0 hard errors
+  Advancing to Architect with advisories attached.</div>
+              </div>
+              <div class="outcome-pills">
+                <span class="outcome-pill good">✓ 0 errors</span>
+                <span class="outcome-pill warn">1 warning</span>
+                <span class="outcome-pill">Score 94/100</span>
+                <span class="outcome-pill good">Gate: PASS</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 4 -->
+          <div class="step">
+            <div class="step-left"><div class="step-num">4</div><div class="step-line"></div></div>
+            <div class="step-body">
+              <div class="step-agent">PM Agent — Jira ticket</div>
+              <div class="step-title">Spec compiled → Jira ticket body, pasted into OMS-247</div>
+              <div class="artifact-wrap">
+                <div class="artifact-fname"><span>OMS-247 · Jira description field</span><span class="artifact-ftype">Jira</span></div>
+                <div class="artifact">## Equity order entry ticket — new order submission
+
+**Spec ID:** `feat-order-entry-ticket-v1` · AgentSpec v0.1
+
+---
+
+### Intent
+Give a front-office trader a form to enter a new equity order and submit
+it to the OMS. Validates client-side, surfaces OMS rejections inline.
+
+### Out of Scope
+> The following are explicitly not part of this ticket.
+- Order amendment and cancel — separate spec
+- Algo orders (TWAP, VWAP, POV) — separate spec
+- Options and futures — equities only in this spec
+
+### Acceptance Criteria
+
+**Scenario 1**
+- **Given:** trader enters AAPL, BUY, qty=100, MARKET, DAY
+- **When:** they click Submit
+- **Then:** POST /orders called once, order_id shown, form resets in 500ms
+
+**Scenario 2**
+- **Given:** LIMIT order with empty limit_price
+- **When:** they click Submit
+- **Then:** inline validation error, POST /orders NOT called
+
+**Scenario 3**
+- **Given:** OMS returns INSUFFICIENT_BUYING_POWER
+- **When:** POST /orders responds
+- **Then:** inline error within 200ms, Submit re-enables, no navigation
+
+### Error Codes — all must be handled
+- `SYMBOL_NOT_FOUND`  · `INSUFFICIENT_BUYING_POWER`
+- `INVALID_LOT_SIZE`  · `OMS_UNAVAILABLE`
+
+---
+*Generated by AgentSpec · Spec: `feat-order-entry-ticket-v1`*
+*YAML source of truth: specs/feat-order-entry-ticket-v1.agentspec.yaml*</div>
+              </div>
+              <p class="step-note">Commit convention: <code>feat/[OMS-247][feat-order-entry-ticket-v1]: implement order entry form</code> — links commit → Jira ticket → YAML spec in one chain.</p>
+            </div>
+          </div>
+
+          <!-- Step 5 -->
+          <div class="step">
+            <div class="step-left"><div class="step-num">5</div><div class="step-line"></div></div>
+            <div class="step-body">
+              <div class="step-agent">Architect Agent</div>
+              <div class="step-title">Spec enriched with technical context — same schema, more precision</div>
+              <div class="artifact-wrap">
+                <div class="artifact-fname"><span>Architect enrichment notes</span><span class="artifact-ftype">enrichment</span></div>
+                <div class="artifact">## Architect review — feat-order-entry-ticket-v1
+
+CONSTRAINT ADDED
+  post_orders_p99: "< 300ms at OMS API boundary"
+  (PM advisory resolved)
+
+CONTEXT ENRICHED
+  AccountPicker exists at src/components/AccountPicker/index.tsx
+  → account_id field MUST reuse AccountPicker. Do not build a new selector.
+
+CONTEXT ENRICHED
+  useDebounce exists at src/hooks/useDebounce.ts (200ms default)
+  → useSymbolSearch must compose useDebounce. Do not write a new timer.
+
+CONTEXT ENRICHED
+  Auth handled by axios interceptor in src/api/client.ts (Bearer + 401→SESSION_EXPIRED)
+  → Component does not manage auth headers directly.
+
+INVARIANT ADDED
+  "Form must not render if useSessionGuard returns isExpired=true —
+   redirect to /login, preserve draft in sessionStorage key: order_entry_draft"
+
+Score after enrichment: 98 / 100  (0 errors, 0 warnings)
+Advancing to Developer Agent.</div>
+              </div>
+              <p class="step-note">The Architect adds precision — not scope. Same AgentSpec schema, enriched with file paths, symbol anchors, and resolved constraints from PM advisories.</p>
+            </div>
+          </div>
+
+          <!-- Step 6 -->
+          <div class="step">
+            <div class="step-left"><div class="step-num">6</div><div class="step-line"></div></div>
+            <div class="step-body">
+              <div class="step-agent">Developer Agent — Claude Code / Cursor / Aider</div>
+              <div class="step-title">Receives compiled brief — implements exactly this, nothing more</div>
+              <div class="artifact-wrap">
+                <div class="artifact-fname"><span>Compiled Claude Code prompt brief</span><span class="artifact-ftype">Claude Code</span></div>
+                <div class="artifact">You are implementing the following AgentSpec.
+Treat each section as a hard constraint.
+
+# Title
+Equity order entry ticket — new order submission
+
+# Intent
+Give a front-office trader a form to enter a new equity order and submit
+it to the OMS. Validates client-side, surfaces OMS rejections inline.
+Target: a trader who has submitted ≥1 order before reaches a valid
+submittable order in under 5 keystrokes from a blank form.
+
+# Out of scope (do NOT implement — tracked under separate specs)
+- Order amendment and cancel
+- Algo orders (TWAP, VWAP, POV)
+- Options and futures — equities only
+- Order blotter / confirmation screen
+
+# Contracts
+## POST /orders
+Inputs:  symbol · side · qty · order_type · limit_price · tif · account_id
+Outputs: order_id (UUID) · status · timestamp (ISO 8601)
+Errors (handle all by name):
+  SYMBOL_NOT_FOUND · INSUFFICIENT_BUYING_POWER
+  INVALID_LOT_SIZE · OMS_UNAVAILABLE
+
+# Invariants (must hold across all execution paths)
+- limit_price hidden and cleared when order_type is MARKET
+- Submit disabled while POST /orders is in flight — no double-submit
+- All error codes surfaced inline — no silent failures, no generic messages
+- Form must not render if useSessionGuard returns isExpired=true
+
+# Acceptance — all must pass before reporting done
+1. Given AAPL/BUY/100/MARKET/DAY → Submit pressed
+   Then POST /orders called once, order_id shown, form resets in 500ms
+2. Given LIMIT with empty limit_price → Submit pressed
+   Then inline error on limit_price, POST /orders NOT called
+3. Given OMS returns INSUFFICIENT_BUYING_POWER
+   Then inline error within 200ms, Submit re-enables, no navigation
+
+# Constraints
+- post_orders_p99: < 300ms at OMS API boundary
+- bundle_size: < 15 KB gzipped added to main bundle
+- accessibility: keyboard-navigable, aria-label on all inputs, errors are aria-live
+
+# Existing context (use — do not reimplement)
+Files:
+  src/components/AccountPicker/index.tsx   ← reuse for account_id
+  src/api/orders.ts · src/api/client.ts    ← axios interceptor handles auth
+  src/hooks/useSymbolSearch.ts
+  src/hooks/useDebounce.ts                 ← compose this, no new timer
+Symbols:
+  ordersApi.submit · AccountPicker
+  useDebounce · useSessionGuard
+
+# Process
+1. Read every section before writing any code.
+2. Implement contracts to satisfy acceptance scenarios verbatim.
+3. Do not extend into anything listed under Out of scope.
+4. All acceptance scenarios must pass before reporting done.</div>
+              </div>
+              <div class="outcome-pills">
+                <span class="outcome-pill good">✓ Scope fenced by out_of_scope</span>
+                <span class="outcome-pill good">✓ No agent lock-in — same spec compiles to Cursor or Aider</span>
+                <span class="outcome-pill good">✓ Commit → Jira OMS-247 → YAML spec fully traceable</span>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /stepper -->
       </div>
     </div>
   </section>
@@ -1539,6 +1844,12 @@ function setKv(path, i, which, val){
   if(!arr[i]) arr[i] = {key:"", val:""};
   arr[i][which] = val;
   kvSetArr(path, arr);
+}
+
+function loadWalkthroughSample(){
+  state = JSON.parse(JSON.stringify(SAMPLES.orderentry));
+  renderAll(); rerender();
+  activateTab("editor");
 }
 
 // sample picker
